@@ -406,10 +406,15 @@ EmptyLbl.Parent = ScrollFrame
 
 -- КНОПКИ
 local btnY = FULL_H - headerHeight - (isMobile and 70 or 76)
-local BtnHolder = Instance.new("Frame")
+local BtnHolder = Instance.new("ScrollingFrame")
 BtnHolder.Size = UDim2.new(1, -20, 0, isMobile and 60 or 34)
 BtnHolder.Position = UDim2.new(0, 10, 0, btnY)
 BtnHolder.BackgroundTransparency = 1
+BtnHolder.ScrollBarThickness = isMobile and 3 or 4
+BtnHolder.ScrollBarImageColor3 = C.Blue
+BtnHolder.BorderSizePixel = 0
+BtnHolder.ScrollingDirection = Enum.ScrollingDirection.Y
+BtnHolder.CanvasSize = UDim2.new(0, 0, 0, 0)
 BtnHolder.ZIndex = 12
 BtnHolder.Parent = Content
 
@@ -419,6 +424,12 @@ BtnLayout.Padding = UDim.new(0, isMobile and 4 or 6)
 BtnLayout.VerticalAlignment = Enum.VerticalAlignment.Top
 BtnLayout.Wraps = isMobile
 BtnLayout.Parent = BtnHolder
+
+local function UpdateBtnCanvas()
+    BtnHolder.CanvasSize = UDim2.new(0, 0, 0, BtnLayout.AbsoluteContentSize.Y + 6)
+end
+BtnLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(UpdateBtnCanvas)
+task.defer(UpdateBtnCanvas)
 
 local function MkBtn(text, col, w)
     local b = Instance.new("TextButton")
