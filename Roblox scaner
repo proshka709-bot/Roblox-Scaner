@@ -18,8 +18,28 @@ ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.Parent = PlayerGui
 
 -- Определение размера экрана
-local ViewportSize = workspace.CurrentCamera.ViewportSize
-local isMobile = ViewportSize.X < 600 or UserInputService.TouchEnabled
+local function GetViewportSizeSafe()
+    local cam = workspace.CurrentCamera
+    if cam then
+        local vs = cam.ViewportSize
+        if vs and vs.X > 0 and vs.Y > 0 then return vs end
+    end
+
+    local t0 = os.clock()
+    while os.clock() - t0 < 3 do
+        cam = workspace.CurrentCamera
+        if cam then
+            local vs = cam.ViewportSize
+            if vs and vs.X > 0 and vs.Y > 0 then return vs end
+        end
+        task.wait()
+    end
+
+    return Vector2.new(800, 600)
+end
+
+local ViewportSize = GetViewportSizeSafe()
+local isMobile = UserInputService.TouchEnabled or ViewportSize.X < 600
 
 -- Адаптивные размеры
 local FULL_W = isMobile and math.min(ViewportSize.X - 20, 380) or 480
@@ -183,7 +203,7 @@ Content.ZIndex = 11
 Content.Parent = Frame
 
 local StatusLbl = Instance.new("TextLabel")
-StatusLbl.Size = UDim2.new(1, -20, 0, isMobile and 18 : 20)
+StatusLbl.Size = UDim2.new(1, -20, 0, isMobile and 18 or 20)
 StatusLbl.Position = UDim2.new(0, 10, 0, 6)
 StatusLbl.BackgroundTransparency = 1
 StatusLbl.Text = "Готов к сканированию" .. (isMobile and "" or " [RCtrl — запуск]")
@@ -348,7 +368,7 @@ local fScript = MkFilter("Script", "Script", C.Green)
 
 -- СПИСОК РЕЗУЛЬТАТОВ
 local listY = filterY + (isMobile and 26 or 28)
-local listH = FULL_H - listY - (isMobile and 80 : 90)
+local listH = FULL_H - listY - (isMobile and 80 or 90)
 
 local ListOuter = Instance.new("Frame")
 ListOuter.Size = UDim2.new(1, -20, 0, listH)
@@ -1003,4 +1023,3 @@ end
 task.spawn(DeepScan)
 print("[Mobile Scanner v7.0] Запущен. " .. (isMobile and "Оптимизирован для телефонов." or "RCtrl = пересканировать."))
 print("Кликни по строке = выбрать, кнопка 'Код' = просмотр исходного кода скрипта")
-
