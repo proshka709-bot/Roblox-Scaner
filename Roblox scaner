@@ -445,6 +445,8 @@ end
 local ScanBtn  = MkBtn("🔍 СКАНИРОВАТЬ", C.Blue, isMobile and (FULL_W - 24) or 148)
 local ViewBtn  = MkBtn("👁 Код", Color3.fromRGB(70,40,120), isMobile and ((FULL_W - 28)/2) or 100)
 local CopyBtn  = MkBtn("📋 Копия", Color3.fromRGB(35,50,90), isMobile and ((FULL_W - 28)/2) or 100)
+local SaveBtn  = MkBtn("💾 TXT", Color3.fromRGB(90, 70, 22), isMobile and ((FULL_W - 28)/2) or 90)
+local CodeScanBtn = MkBtn("🧾 Код: OFF", Color3.fromRGB(45, 45, 75), isMobile and ((FULL_W - 28)/2) or 110)
 local PrintBtn = MkBtn("📜 Консоль", Color3.fromRGB(30,45,30), isMobile and (FULL_W - 24) or 108)
 
 -- DRAG (для ПК и мобильных)
@@ -498,6 +500,31 @@ local allItems = {}
 local lastResult = ""
 local scanning = false
 local selectedItem = nil
+local includeSource = false
+
+local function MakeTimestamp()
+    return os.date("%Y-%m-%d_%H-%M-%S")
+end
+
+local function TrySaveTxt(text)
+    if type(text) ~= "string" or text == "" then
+        return false, "EMPTY"
+    end
+
+    local wf = rawget(getfenv and getfenv() or _G, "writefile") or writefile
+    if type(wf) ~= "function" then
+        return false, "NO_WRITEFILE"
+    end
+
+    local filename = "RobloScanner_7.0_" .. MakeTimestamp() .. ".txt"
+    local ok, err = pcall(function()
+        wf(filename, text)
+    end)
+    if not ok then
+        return false, tostring(err)
+    end
+    return true, filename
+end
 
 local typeColor = {
     LocalScript    = C.Yellow,
@@ -697,6 +724,12 @@ local function BuildText()
         local n = tostring(i)
         while #n < 4 do n = " " .. n end
         table.insert(lines, n .. ")  [" .. item.type .. "]  " .. item.name .. "\n         " .. item.path)
+        if item.source and item.source ~= "" then
+            table.insert(lines, "")
+            table.insert(lines, "----- SOURCE BEGIN -----")
+            table.insert(lines, item.source)
+            table.insert(lines, "----- SOURCE END -----")
+        end
     end
     return table.concat(lines, "\n")
 end
@@ -800,11 +833,16 @@ local function DeepScan()
                         local fp = v:GetFullName()
                         if not seenPath[fp] then
                             seenPath[fp] = true
+                            local src = nil
+                            if includeSource and (cn=="LocalScript" or cn=="ModuleScript" or cn=="Script") then
+                                src = GetScriptSource(v)
+                            end
                             table.insert(allItems, {
                                 type = cn, 
                                 name = v.Name, 
                                 path = fp, 
                                 obj = v,
+                                source = src,
                                 order = typeOrder[cn] or 9
                             })
                         end
@@ -971,6 +1009,39 @@ CopyBtn.MouseButton1Click:Connect(function()
         CopyBtn.Text = old
         CopyBtn.BackgroundColor3 = Color3.fromRGB(35, 50, 90)
     end)
+end)
+
+SaveBtn.MouseButton1Click:Connect(function()
+    if lastResult == "" then
+        StatusLbl.Text = "⚠️ Сначала запусти сканирование!"
+        return
+    end
+
+    local ok, info = TrySaveTxt(lastResult)
+    if ok then
+        StatusLbl.Text = "💾 Сохранено: " .. tostring(info)
+        local old = SaveBtn.Text
+        SaveBtn.Text = "✅ OK!"
+        SaveBtn.BackgroundColor3 = Color3.fromRGB(30, 80, 40)
+        task.delay(1.5, function()
+            SaveBtn.Text = old
+            SaveBtn.BackgroundColor3 = Color3.fromRGB(90, 70, 22)
+        end)
+    else
+        if info == "NO_WRITEFILE" then
+            StatusLbl.Text = "⚠️ writefile недоступен. Используй 'Копия' и вставь в txt вручную."
+        elseif info == "EMPTY" then
+            StatusLbl.Text = "⚠️ Нечего сохранять"
+        else
+            StatusLbl.Text = "❌ Ошибка сохранения: " .. tostring(info)
+        end
+    end
+end)
+
+CodeScanBtn.MouseButton1Click:Connect(function()
+    includeSource = not includeSource
+    CodeScanBtn.Text = includeSource and "🧾 Код: ON" or "🧾 Код: OFF"
+    StatusLbl.Text = includeSource and "Код будет добавляться в результат при скане" or "Скан без кода"
 end)
 
 PrintBtn.MouseButton1Click:Connect(function()
