@@ -1,11 +1,6 @@
 --[[
-    =========================================================
-    📱 ROBLOX ULTIMATE MOBILE SCANNER v8.2
-    • Красивый адаптивный UI (Mobile Friendly)
-    • Глубокое сканирование (включая Nil и скрытые сервисы)
-    • АВТО-КОПИРОВАНИЕ в буфер обмена после завершения
-    • Просмотр исходного кода (Decompile)
-    =========================================================
+    Pure Auto Scanner v7.0 | Ultimate Vision Edition
+    Улучшено: Полный охват всех сервисов, оптимизация UI, генератор кода.
 ]]
 
 local Players = game:GetService("Players")
@@ -15,356 +10,370 @@ local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- Удаляем старое меню
-if PlayerGui:FindFirstChild("MobileScanUI") then
-    PlayerGui.MobileScanUI:Destroy()
+-- Удаление старой версии
+if PlayerGui:FindFirstChild("PureAutoScan") then
+    PlayerGui.PureAutoScan:Destroy()
 end
 
--- ================= НАСТРОЙКИ UI =================
-local ViewportSize = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(800, 600)
-local isMobile = UserInputService.TouchEnabled or ViewportSize.X < 600
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "PureAutoScan"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.Parent = PlayerGui
 
-local FULL_W = isMobile and math.min(ViewportSize.X - 20, 380) or 480
-local FULL_H = isMobile and math.min(ViewportSize.Y - 40, 600) or 520
-
+-- Цветовая палитра "Cyber Dark"
 local C = {
-    BG      = Color3.fromRGB(12, 12, 18),
-    Panel   = Color3.fromRGB(22, 22, 32),
-    Panel2  = Color3.fromRGB(30, 30, 42),
-    Blue    = Color3.fromRGB(65, 130, 255),
-    Green   = Color3.fromRGB(70, 210, 110),
-    Red     = Color3.fromRGB(230, 70, 70),
-    Yellow  = Color3.fromRGB(240, 190, 50),
-    Purple  = Color3.fromRGB(160, 80, 240),
-    Orange  = Color3.fromRGB(240, 140, 50),
-    Cyan    = Color3.fromRGB(50, 200, 200),
+    BG      = Color3.fromRGB(11, 11, 18),
+    Panel   = Color3.fromRGB(18, 18, 28),
+    Panel2  = Color3.fromRGB(24, 24, 38),
+    Accent  = Color3.fromRGB(0, 162, 255),
+    Blue    = Color3.fromRGB(60, 140, 255),
+    Green   = Color3.fromRGB(80, 220, 120),
+    Red     = Color3.fromRGB(255, 70, 70),
+    Yellow  = Color3.fromRGB(255, 200, 60),
+    Purple  = Color3.fromRGB(170, 90, 255),
+    Orange  = Color3.fromRGB(255, 130, 50),
     Text    = Color3.fromRGB(245, 245, 255),
-    Dim     = Color3.fromRGB(140, 140, 160),
-    Row1    = Color3.fromRGB(18, 18, 28),
-    Row2    = Color3.fromRGB(24, 24, 36),
+    Dim     = Color3.fromRGB(140, 145, 165),
+    Faint   = Color3.fromRGB(50, 50, 75),
 }
+
+-- Хелперы
+local function MkCorner(p, r)
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, r or 10)
+    c.Parent = p
+end
+
+local function MkStroke(p, col, th)
+    local s = Instance.new("UIStroke")
+    s.Color = col or Color3.fromRGB(50, 50, 85)
+    s.Thickness = th or 1.2
+    s.Parent = p
+end
 
 local function Tween(obj, props, t)
     TweenService:Create(obj, TweenInfo.new(t or 0.2, Enum.EasingStyle.Quad), props):Play()
 end
 
--- ================= СОЗДАНИЕ ИНТЕРФЕЙСА =================
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "MobileScanUI"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.IgnoreGuiInset = true
-ScreenGui.Parent = PlayerGui
+-- ГЛАВНОЕ ОКНО
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 520, 0, 580)
+MainFrame.Position = UDim2.new(0.5, -260, 0.5, -290)
+MainFrame.BackgroundColor3 = C.BG
+MainFrame.BorderSizePixel = 0
+MainFrame.Parent = ScreenGui
+MkCorner(MainFrame, 16)
+MkStroke(MainFrame, Color3.fromRGB(60, 60, 100), 2)
 
-local Frame = Instance.new("Frame")
-Frame.Size = UDim2.new(0, FULL_W, 0, FULL_H)
-Frame.Position = UDim2.new(0.5, -FULL_W/2, 0.5, -FULL_H/2)
-Frame.BackgroundColor3 = C.BG
-Frame.ClipsDescendants = true
-Frame.Parent = ScreenGui
-Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 12)
-local outline = Instance.new("UIStroke", Frame)
-outline.Color = C.Blue; outline.Thickness = 1.5
-
--- Хедер
-local Header = Instance.new("Frame", Frame)
-Header.Size = UDim2.new(1, 0, 0, 45)
+-- Заголовок
+local Header = Instance.new("Frame")
+Header.Size = UDim2.new(1, 0, 0, 50)
 Header.BackgroundColor3 = C.Panel
-Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 12)
+Header.BorderSizePixel = 0
+Header.Parent = MainFrame
+MkCorner(Header, 16)
 
-local Title = Instance.new("TextLabel", Header)
-Title.Size = UDim2.new(0.7, 0, 1, 0); Title.Position = UDim2.new(0, 15, 0, 0)
-Title.BackgroundTransparency = 1; Title.Text = "🧬 Ultimate Scanner v8.2"
-Title.TextColor3 = C.Text; Title.Font = Enum.Font.GothamBold; Title.TextSize = 14
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, -120, 1, 0)
+Title.Position = UDim2.new(0, 20, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "PURE SCANNER v7.0 <font color='#00A2FF'>ULTIMATE</font>"
+Title.RichText = true
+Title.TextColor3 = C.Text
+Title.TextSize = 18
+Title.Font = Enum.Font.GothamBold
 Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = Header
 
-local CloseBtn = Instance.new("TextButton", Header)
-CloseBtn.Size = UDim2.new(0, 30, 0, 30); CloseBtn.Position = UDim2.new(1, -40, 0.5, -15)
-CloseBtn.BackgroundColor3 = Color3.fromRGB(80, 25, 25)
-CloseBtn.Text = "✕"; CloseBtn.TextColor3 = C.Red; CloseBtn.Font = Enum.Font.GothamBold; CloseBtn.TextSize = 14
-Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 8)
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 32, 0, 32)
+CloseBtn.Position = UDim2.new(1, -42, 0.5, -16)
+CloseBtn.BackgroundColor3 = C.Red
+CloseBtn.Text = "✕"
+CloseBtn.TextColor3 = C.Text
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.Parent = Header
+MkCorner(CloseBtn, 8)
+
+-- Статистика (Бейджи)
+local StatsBar = Instance.new("Frame")
+StatsBar.Size = UDim2.new(1, -30, 0, 30)
+StatsBar.Position = UDim2.new(0, 15, 0, 60)
+StatsBar.BackgroundTransparency = 1
+StatsBar.Parent = MainFrame
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.FillDirection = Enum.FillDirection.Horizontal
+UIListLayout.Padding = UDim.new(0, 8)
+UIListLayout.Parent = StatsBar
+
+local function CreateStat(name, color)
+    local f = Instance.new("Frame")
+    f.Size = UDim2.new(0, 95, 1, 0)
+    f.BackgroundColor3 = color
+    f.BackgroundTransparency = 0.85
+    f.Parent = StatsBar
+    MkCorner(f, 6)
+    MkStroke(f, color, 0.8)
+    
+    local l = Instance.new("TextLabel")
+    l.Size = UDim2.new(1, 0, 1, 0)
+    l.BackgroundTransparency = 1
+    l.Text = name .. ": 0"
+    l.TextColor3 = C.Text
+    l.TextSize = 10
+    l.Font = Enum.Font.GothamBold
+    l.Parent = f
+    return l
+end
+
+local StatRemotes = CreateStat("Remotes", C.Blue)
+local StatScripts = CreateStat("Scripts", C.Green)
+local StatModules = CreateStat("Modules", C.Purple)
+local StatOther   = CreateStat("Other",   C.Yellow)
+
+-- Поиск
+local SearchBox = Instance.new("TextBox")
+SearchBox.Size = UDim2.new(1, -30, 0, 35)
+SearchBox.Position = UDim2.new(0, 15, 0, 100)
+SearchBox.BackgroundColor3 = C.Panel2
+SearchBox.PlaceholderText = "Введите имя объекта для фильтрации..."
+SearchBox.Text = ""
+SearchBox.TextColor3 = C.Text
+SearchBox.Font = Enum.Font.Gotham
+SearchBox.TextSize = 14
+SearchBox.Parent = MainFrame
+MkCorner(SearchBox, 8)
+MkStroke(SearchBox, C.Faint, 1)
+
+-- Скролл область
+local Scroll = Instance.new("ScrollingFrame")
+Scroll.Size = UDim2.new(1, -30, 1, -210)
+Scroll.Position = UDim2.new(0, 15, 0, 145)
+Scroll.BackgroundTransparency = 1
+Scroll.ScrollBarThickness = 3
+Scroll.ScrollBarImageColor3 = C.Accent
+Scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+Scroll.Parent = MainFrame
+
+local ListLayout = Instance.new("UIListLayout")
+ListLayout.Padding = UDim.new(0, 5)
+ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+ListLayout.Parent = Scroll
+
+-- Нижняя панель (Кнопки)
+local Footer = Instance.new("Frame")
+Footer.Size = UDim2.new(1, 0, 0, 60)
+Footer.Position = UDim2.new(0, 0, 1, -60)
+Footer.BackgroundColor3 = C.Panel
+Footer.Parent = MainFrame
+MkCorner(Footer, 16)
+
+local ScanBtn = Instance.new("TextButton")
+ScanBtn.Size = UDim2.new(0, 200, 0, 40)
+ScanBtn.Position = UDim2.new(0.5, -100, 0.5, -20)
+ScanBtn.BackgroundColor3 = C.Accent
+ScanBtn.Text = "ЗАПУСТИТЬ СКАН"
+ScanBtn.TextColor3 = C.Text
+ScanBtn.Font = Enum.Font.GothamBold
+ScanBtn.TextSize = 14
+ScanBtn.Parent = Footer
+MkCorner(ScanBtn, 10)
+
+-- ЛОГИКА
+local FoundItems = {}
+local IsScanning = false
+
+local function AddItemToList(obj)
+    local Class = obj.ClassName
+    local Color = C.Dim
+    local Icon = "🔘"
+
+    if Class:find("Remote") then 
+        Color = C.Blue 
+        Icon = "📡"
+    elseif Class == "LocalScript" then 
+        Color = C.Green 
+        Icon = "📜"
+    elseif Class == "ModuleScript" then 
+        Color = C.Purple 
+        Icon = "📦"
+    elseif Class == "Script" then 
+        Color = C.Orange 
+        Icon = "⚙️"
+    end
+
+    local ItemFrame = Instance.new("TextButton")
+    ItemFrame.Size = UDim2.new(1, -10, 0, 40)
+    ItemFrame.BackgroundColor3 = C.Panel2
+    ItemFrame.Text = ""
+    ItemFrame.AutoButtonColor = true
+    ItemFrame.Parent = Scroll
+    MkCorner(ItemFrame, 6)
+    
+    local NameLbl = Instance.new("TextLabel")
+    NameLbl.Size = UDim2.new(0.4, 0, 0.5, 0)
+    NameLbl.Position = UDim2.new(0, 35, 0.1, 0)
+    NameLbl.BackgroundTransparency = 1
+    NameLbl.Text = obj.Name
+    NameLbl.TextColor3 = Color
+    NameLbl.Font = Enum.Font.GothamBold
+    NameLbl.TextSize = 12
+    NameLbl.TextXAlignment = Enum.TextXAlignment.Left
+    NameLbl.Parent = ItemFrame
+
+    local PathLbl = Instance.new("TextLabel")
+    PathLbl.Size = UDim2.new(0.9, 0, 0.3, 0)
+    PathLbl.Position = UDim2.new(0, 35, 0.6, 0)
+    PathLbl.BackgroundTransparency = 1
+    PathLbl.Text = obj:GetFullName()
+    PathLbl.TextColor3 = C.Dim
+    PathLbl.Font = Enum.Font.Gotham
+    PathLbl.TextSize = 9
+    PathLbl.TextXAlignment = Enum.TextXAlignment.Left
+    PathLbl.TextTruncate = Enum.TextTruncate.AtEnd
+    PathLbl.Parent = ItemFrame
+
+    local IconLbl = Instance.new("TextLabel")
+    IconLbl.Size = UDim2.new(0, 30, 1, 0)
+    IconLbl.BackgroundTransparency = 1
+    IconLbl.Text = Icon
+    IconLbl.TextSize = 16
+    IconLbl.Parent = ItemFrame
+
+    ItemFrame.MouseButton1Click:Connect(function()
+        local path = obj:GetFullName()
+        local clipboard = path
+        
+        -- Если это Remote, генерируем код
+        if Class == "RemoteEvent" then
+            clipboard = string.format("game:GetService(\"%s\").%s:FireServer(args)", obj.Parent.Name, obj.Name)
+        elseif Class == "RemoteFunction" then
+            clipboard = string.format("game:GetService(\"%s\").%s:InvokeServer(args)", obj.Parent.Name, obj.Name)
+        end
+        
+        if setclipboard then
+            setclipboard(clipboard)
+            NameLbl.Text = "✅ СКОПИРОВАНО В БУФЕР"
+            task.delay(1, function() NameLbl.Text = obj.Name end)
+        end
+    end)
+end
+
+local function FullScan()
+    if IsScanning then return end
+    IsScanning = true
+    FoundItems = {}
+    
+    -- Очистка
+    for _, v in pairs(Scroll:GetChildren()) do
+        if v:IsA("TextButton") then v:Destroy() end
+    end
+    
+    ScanBtn.Text = "СКАНИРОВАНИЕ..."
+    ScanBtn.BackgroundColor3 = C.Dim
+
+    local services = {}
+    -- Везде! Перебираем абсолютно все сервисы
+    for _, service in pairs(game:GetChildren()) do
+        pcall(function()
+            table.insert(services, service)
+        end)
+    end
+
+    local counts = {R = 0, S = 0, M = 0, O = 0}
+
+    for _, service in pairs(services) do
+        local descendants = {}
+        pcall(function()
+            descendants = service:GetDescendants()
+        end)
+
+        for i, obj in pairs(descendants) do
+            local cn = obj.ClassName
+            if cn:find("Remote") or cn:find("Script") or cn:find("Function") or cn:find("Event") then
+                table.insert(FoundItems, obj)
+                
+                -- Счётчики
+                if cn:find("Remote") then counts.R += 1
+                elseif cn == "LocalScript" or cn == "Script" then counts.S += 1
+                elseif cn == "ModuleScript" then counts.M += 1
+                else counts.O += 1 end
+            end
+            
+            -- Чтобы не фризило игру
+            if i % 300 == 0 then
+                task.wait()
+                ScanBtn.Text = "НАЙДЕНО: " .. #FoundItems
+            end
+        end
+    end
+
+    -- Отрисовка результатов
+    for _, item in pairs(FoundItems) do
+        AddItemToList(item)
+    end
+
+    StatRemotes.Text = "Remotes: " .. counts.R
+    StatScripts.Text = "Scripts: " .. counts.S
+    StatModules.Text = "Modules: " .. counts.M
+    StatOther.Text   = "Other: " .. counts.O
+
+    Scroll.CanvasSize = UDim2.new(0, 0, 0, ListLayout.AbsoluteContentSize.Y)
+    ScanBtn.Text = "ПЕРЕСКАНИРОВАТЬ"
+    ScanBtn.BackgroundColor3 = C.Accent
+    IsScanning = false
+end
+
+-- Поиск/Фильтр
+SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
+    local query = SearchBox.Text:lower()
+    for _, item in pairs(Scroll:GetChildren()) do
+        if item:IsA("TextButton") then
+            local name = item:FindFirstChild("TextLabel").Text:lower()
+            local path = item:FindFirstChildOfClass("TextLabel").Text:lower()
+            if name:find(query) or path:find(query) then
+                item.Visible = true
+            else
+                item.Visible = false
+            end
+        end
+    end
+end)
+
+-- Dragging (Перетаскивание)
+local dragging, dragStart, startPos
+Header.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+
+ScanBtn.MouseButton1Click:Connect(FullScan)
 CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
--- Статус и Прогресс
-local StatusLbl = Instance.new("TextLabel", Frame)
-StatusLbl.Size = UDim2.new(1, -30, 0, 20); StatusLbl.Position = UDim2.new(0, 15, 0, 50)
-StatusLbl.BackgroundTransparency = 1; StatusLbl.Text = "Ожидание запуска..."
-StatusLbl.TextColor3 = C.Dim; StatusLbl.Font = Enum.Font.GothamMedium; StatusLbl.TextSize = 12
-StatusLbl.TextXAlignment = Enum.TextXAlignment.Left
-
-local BarBG = Instance.new("Frame", Frame)
-BarBG.Size = UDim2.new(1, -30, 0, 8); BarBG.Position = UDim2.new(0, 15, 0, 75)
-BarBG.BackgroundColor3 = C.Panel2; Instance.new("UICorner", BarBG).CornerRadius = UDim.new(1, 0)
-
-local BarFill = Instance.new("Frame", BarBG)
-BarFill.Size = UDim2.new(0, 0, 1, 0); BarFill.BackgroundColor3 = C.Blue
-Instance.new("UICorner", BarFill).CornerRadius = UDim.new(1, 0)
-
--- Список объектов
-local ListOuter = Instance.new("Frame", Frame)
-ListOuter.Size = UDim2.new(1, -30, 1, -165); ListOuter.Position = UDim2.new(0, 15, 0, 100)
-ListOuter.BackgroundColor3 = C.Panel; ListOuter.ClipsDescendants = true
-Instance.new("UICorner", ListOuter).CornerRadius = UDim.new(0, 8)
-local listOutline = Instance.new("UIStroke", ListOuter)
-listOutline.Color = C.Faint; listOutline.Thickness = 1
-
-local ScrollFrame = Instance.new("ScrollingFrame", ListOuter)
-ScrollFrame.Size = UDim2.new(1, -4, 1, -4); ScrollFrame.Position = UDim2.new(0, 2, 0, 2)
-ScrollFrame.BackgroundTransparency = 1; ScrollFrame.ScrollBarThickness = 4
-ScrollFrame.ScrollBarImageColor3 = C.Blue
-local ListLayout = Instance.new("UIListLayout", ScrollFrame)
-
--- Нижние кнопки
-local BtnContainer = Instance.new("Frame", Frame)
-BtnContainer.Size = UDim2.new(1, -30, 0, 40); BtnContainer.Position = UDim2.new(0, 15, 1, -55)
-BtnContainer.BackgroundTransparency = 1
-
-local ScanBtn = Instance.new("TextButton", BtnContainer)
-ScanBtn.Size = UDim2.new(0.65, -5, 1, 0); ScanBtn.Position = UDim2.new(0, 0, 0, 0)
-ScanBtn.BackgroundColor3 = C.Blue; ScanBtn.Text = "🔍 СКАНИРОВАТЬ"
-ScanBtn.TextColor3 = C.Text; ScanBtn.Font = Enum.Font.GothamBold; ScanBtn.TextSize = 13
-Instance.new("UICorner", ScanBtn).CornerRadius = UDim.new(0, 8)
-
-local CodeBtn = Instance.new("TextButton", BtnContainer)
-CodeBtn.Size = UDim2.new(0.35, 0, 1, 0); CodeBtn.Position = UDim2.new(0.65, 5, 0, 0)
-CodeBtn.BackgroundColor3 = C.Purple; CodeBtn.Text = "👁 КОД"
-CodeBtn.TextColor3 = C.Text; CodeBtn.Font = Enum.Font.GothamBold; CodeBtn.TextSize = 13
-Instance.new("UICorner", CodeBtn).CornerRadius = UDim.new(0, 8)
-
--- ================= ЛОГИКА СКАНЕРА =================
-local allItems = {}
-local selectedItem = nil
-local isScanning = false
-
-local typeInfo = {
-    LocalScript    = {c = C.Yellow, i = "🟡"},
-    ModuleScript   = {c = C.Purple, i = "🟣"},
-    Script         = {c = C.Green,  i = "🟢"},
-    RemoteEvent    = {c = C.Blue,   i = "📡"},
-    RemoteFunction = {c = C.Orange, i = "📶"},
-    BindableEvent  = {c = C.Cyan,   i = "🔗"},
-    BindableFunction={c = C.Cyan,   i = "🔗"},
-}
-
--- Безопасные функции
-local safeGetNil = type(getnilinstances) == "function" and getnilinstances or function() return {} end
-local safeClipboard = type(setclipboard) == "function" and setclipboard or function() end
-local safeDecompile = type(decompile) == "function" and decompile or function() return "-- Экзекутор не поддерживает декомпиляцию." end
-
-local function FormatDumpText()
-    local lines = {
-        "═══════════════════════════════════",
-        "  Ultimate Scanner v8.2 — " .. os.date("%Y-%m-%d %H:%M:%S"),
-        "  Найдено: " .. #allItems .. " объектов",
-        "═══════════════════════════════════",
-        ""
-    }
-    
-    for i, item in ipairs(allItems) do
-        local num = tostring(i)
-        while #num < 4 do num = " " .. num end
-        table.insert(lines, num .. ")  [" .. item.type .. "]  " .. item.name .. "\n         " .. item.path)
-    end
-    
-    return table.concat(lines, "\n")
-end
-
-local function StartScan()
-    if isScanning then return end
-    isScanning = true
-    allItems = {}
-    
-    ScanBtn.Text = "⏳ СКАНИРУЮ..."
-    Tween(BarFill, {Size = UDim2.new(0, 0, 1, 0)}, 0.1)
-    
-    -- Очистка UI
-    for _, child in ipairs(ScrollFrame:GetChildren()) do
-        if child:IsA("TextButton") then child:Destroy() end
-    end
-
-    task.spawn(function()
-        local seenPaths = {}
-        local count = 0
-        local totalEst = 3000 -- Примерное число для полоски
-        
-        local function ProcessObject(obj, isNil)
-            local cn = obj.ClassName
-            if typeInfo[cn] then
-                local path = isNil and ("Nil." .. obj.Name) or obj:GetFullName()
-                if not seenPaths[path] then
-                    seenPaths[path] = true
-                    table.insert(allItems, {
-                        type = cn, name = obj.Name, path = path, obj = obj
-                    })
-                    count = count + 1
-                end
-            end
-        end
-
-        StatusLbl.Text = "🔎 Поиск в сервисах игры..."
-        
-        -- 1. Сбор всех объектов в игре
-        local services = game:GetChildren()
-        for _, svc in ipairs(services) do
-            pcall(function()
-                for _, obj in ipairs(svc:GetDescendants()) do
-                    ProcessObject(obj, false)
-                    -- Анти-Лаг для слабых телефонов
-                    if count % 100 == 0 then 
-                        local pct = math.clamp(count / totalEst, 0.1, 0.9)
-                        Tween(BarFill, {Size = UDim2.new(pct, 0, 1, 0)}, 0.1)
-                        task.wait() 
-                    end
-                end
-            end)
-        end
-        
-        -- 2. Сбор скрытых объектов в Nil
-        StatusLbl.Text = "👻 Поиск в скрытых объектах (Nil)..."
-        local nilObjs = safeGetNil()
-        for _, obj in ipairs(nilObjs) do
-            pcall(function()
-                ProcessObject(obj, true)
-                for _, child in ipairs(obj:GetDescendants()) do
-                    ProcessObject(child, true)
-                end
-            end)
-            task.wait()
-        end
-
-        -- 3. Отрисовка красивого UI
-        StatusLbl.Text = "🎨 Создание списка..."
-        for i, item in ipairs(allItems) do
-            local info = typeInfo[item.type]
-            
-            local row = Instance.new("TextButton")
-            row.Size = UDim2.new(1, 0, 0, 30)
-            row.BackgroundColor3 = i % 2 == 0 and C.Row1 or C.Row2
-            row.BorderSizePixel = 0; row.Text = ""
-            row.Parent = ScrollFrame
-            
-            local icon = Instance.new("TextLabel", row)
-            icon.Size = UDim2.new(0, 25, 1, 0); icon.BackgroundTransparency = 1
-            icon.Text = info.i; icon.TextSize = 12; icon.Font = Enum.Font.GothamBold
-            
-            local title = Instance.new("TextLabel", row)
-            title.Size = UDim2.new(0, 120, 1, 0); title.Position = UDim2.new(0, 25, 0, 0)
-            title.BackgroundTransparency = 1; title.Text = item.name
-            title.TextColor3 = info.c; title.Font = Enum.Font.GothamBold; title.TextSize = 11
-            title.TextXAlignment = Enum.TextXAlignment.Left; title.TextTruncate = Enum.TextTruncate.AtEnd
-            
-            local pathLbl = Instance.new("TextLabel", row)
-            pathLbl.Size = UDim2.new(1, -150, 1, 0); pathLbl.Position = UDim2.new(0, 145, 0, 0)
-            pathLbl.BackgroundTransparency = 1; pathLbl.Text = item.path
-            pathLbl.TextColor3 = C.Dim; pathLbl.Font = Enum.Font.Gotham; pathLbl.TextSize = 10
-            pathLbl.TextXAlignment = Enum.TextXAlignment.Left; pathLbl.TextTruncate = Enum.TextTruncate.AtEnd
-            
-            row.MouseButton1Click:Connect(function()
-                selectedItem = item
-                safeClipboard(item.path)
-                pathLbl.Text = "✅ Скопировано!"; pathLbl.TextColor3 = info.c
-                task.delay(1, function() pathLbl.Text = item.path; pathLbl.TextColor3 = C.Dim end)
-            end)
-            
-            if i % 100 == 0 then task.wait() end -- Легкий рендер
-        end
-        
-        ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, ListLayout.AbsoluteContentSize.Y)
-        Tween(BarFill, {Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = C.Green}, 0.3)
-        
-        -- 4. АВТО-КОПИРОВАНИЕ В БУФЕР ОБМЕНА
-        local finalDumpText = FormatDumpText()
-        safeClipboard(finalDumpText)
-        
-        StatusLbl.Text = "✅ Готово! Найдено: " .. #allItems .. ". СКОПИРОВАНО В БУФЕР ОБМЕНА!"
-        ScanBtn.Text = "🔁 СКАНИРОВАТЬ ЗАНОВО"
-        isScanning = false
-    end)
-end
-
--- ================= ПРОСМОТР КОДА =================
-local CodeViewer = nil
-CodeBtn.MouseButton1Click:Connect(function()
-    if not selectedItem then
-        StatusLbl.Text = "⚠️ Сначала выбери объект в списке!"
-        return
-    end
-    
-    if CodeViewer then CodeViewer:Destroy() end
-    
-    CodeViewer = Instance.new("Frame", ScreenGui)
-    CodeViewer.Size = UDim2.new(0, FULL_W - 20, 0, FULL_H - 40)
-    CodeViewer.Position = UDim2.new(0.5, -(FULL_W - 20)/2, 0.5, -(FULL_H - 40)/2)
-    CodeViewer.BackgroundColor3 = C.BG
-    Instance.new("UICorner", CodeViewer).CornerRadius = UDim.new(0, 12)
-    local cvStroke = Instance.new("UIStroke", CodeViewer); cvStroke.Color = C.Purple; cvStroke.Thickness = 2
-    
-    local cvHeader = Instance.new("Frame", CodeViewer)
-    cvHeader.Size = UDim2.new(1, 0, 0, 40); cvHeader.BackgroundColor3 = C.Panel
-    Instance.new("UICorner", cvHeader).CornerRadius = UDim.new(0, 12)
-    
-    local cvTitle = Instance.new("TextLabel", cvHeader)
-    cvTitle.Size = UDim2.new(0.8, 0, 1, 0); cvTitle.Position = UDim2.new(0, 15, 0, 0)
-    cvTitle.BackgroundTransparency = 1; cvTitle.Text = "👁 Код: " .. selectedItem.name
-    cvTitle.TextColor3 = C.Purple; cvTitle.Font = Enum.Font.GothamBold; cvTitle.TextSize = 13
-    cvTitle.TextXAlignment = Enum.TextXAlignment.Left
-    
-    local cvClose = Instance.new("TextButton", cvHeader)
-    cvClose.Size = UDim2.new(0, 30, 0, 30); cvClose.Position = UDim2.new(1, -40, 0.5, -15)
-    cvClose.BackgroundColor3 = Color3.fromRGB(80, 25, 25); cvClose.Text = "✕"
-    cvClose.TextColor3 = C.Red; cvClose.Font = Enum.Font.GothamBold; cvClose.TextSize = 14
-    Instance.new("UICorner", cvClose).CornerRadius = UDim.new(0, 8)
-    cvClose.MouseButton1Click:Connect(function() CodeViewer:Destroy() end)
-    
-    local cvScroll = Instance.new("ScrollingFrame", CodeViewer)
-    cvScroll.Size = UDim2.new(1, -20, 1, -55); cvScroll.Position = UDim2.new(0, 10, 0, 45)
-    cvScroll.BackgroundColor3 = C.Panel2; cvScroll.ScrollBarThickness = 4
-    Instance.new("UICorner", cvScroll).CornerRadius = UDim.new(0, 8)
-    
-    local cvText = Instance.new("TextLabel", cvScroll)
-    cvText.Size = UDim2.new(1, -10, 0, 0)
-    cvText.BackgroundTransparency = 1; cvText.Text = "⏳ Декомпиляция..."
-    cvText.TextColor3 = C.Text; cvText.Font = Enum.Font.Code; cvText.TextSize = 10
-    cvText.TextXAlignment = Enum.TextXAlignment.Left; cvText.TextYAlignment = Enum.TextYAlignment.Top
-    cvText.TextWrapped = true
-    local pad = Instance.new("UIPadding", cvText); pad.PaddingTop = UDim.new(0,6); pad.PaddingLeft = UDim.new(0,6)
-    
-    task.spawn(function()
-        local code = ""
-        pcall(function()
-            if selectedItem.type == "LocalScript" or selectedItem.type == "ModuleScript" then
-                code = safeDecompile(selectedItem.obj)
-            else
-                code = "-- Это не скрипт, код недоступен."
-            end
-        end)
-        cvText.Text = code
-        task.wait()
-        cvText.Size = UDim2.new(1, -10, 0, cvText.TextBounds.Y + 40)
-        cvScroll.CanvasSize = UDim2.new(0, 0, 0, cvText.Size.Y.Offset)
-    end)
-end)
-
--- ================= DRAG (ПЕРЕТАСКИВАНИЕ) =================
-local dragToggle, dragStart, startPos
-Header.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragToggle = true; dragStart = input.Position; startPos = Frame.Position
-    end
-end)
-UserInputService.InputChanged:Connect(function(input)
-    if dragToggle and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
-        local delta = input.Position - dragStart
-        Frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-end)
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragToggle = false
+-- Хоткей: RightControl для скрытия/показа
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if not gpe and input.KeyCode == Enum.KeyCode.RightControl then
+        MainFrame.Visible = not MainFrame.Visible
     end
 end)
 
--- Запуск
-ScanBtn.MouseButton1Click:Connect(StartScan)
-
--- Предупреждение
-print("Ultimate Scanner v8.2 Загружен! Нажми 'СКАНИРОВАТЬ'.")
+-- Авто-старт
+task.spawn(FullScan)
